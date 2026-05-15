@@ -74,6 +74,10 @@
               (click)="createGame(client.clientId)">
               {{ 'BUTTON_INVITE' | translate }}
             </button>
+            <button mat-menu-item *ngIf="clientId === client.clientId" [disabled]="loading"
+              (click)="createSelfPlayGame()">
+              {{ 'REACT_MENU_SELF_PLAY' | translate }}
+            </button>
             <button mat-menu-item *ngIf="loggedUserId !== client.user?.userId"
               [routerLink]="['/message', client.user?.userId]">
               {{ 'BUTTON_SEND_MESSAGE' | translate }}

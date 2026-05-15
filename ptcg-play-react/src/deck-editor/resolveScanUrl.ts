@@ -39,6 +39,16 @@ function ensureAbsolute(url: string, apiBase: string): string {
   return `${base}${path}`;
 }
 
+function isDefaultCardbackUrl(url: string): boolean {
+  const normalized = url.trim().replace(/^\/+/, '');
+  return normalized === 'assets/cardback.png';
+}
+
+function limitlessCardImageUrl(card: Card, apiBase: string): string {
+  const base = apiBase.replace(/\/$/, '');
+  return `${base}/v1/images/card?set=${encodeURIComponent(card.set)}&number=${encodeURIComponent(card.setNumber)}`;
+}
+
 /**
  * Same resolution order as Angular CardsBaseService.getScanUrl:
  * nightly map, local overrides, custom JSON map, then scansUrl template.
@@ -103,7 +113,11 @@ export function resolveScanUrlRaw(
     return '';
   }
 
-  return cardScanUrl(card, scansUrl, apiBase);
+  const fallback = cardScanUrl(card, scansUrl, apiBase);
+  if (isDefaultCardbackUrl(fallback)) {
+    return limitlessCardImageUrl(card, apiBase);
+  }
+  return fallback;
 }
 
 const LS_CUSTOM = 'customCardImages';

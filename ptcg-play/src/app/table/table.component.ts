@@ -19,6 +19,7 @@ import { SettingsService } from './table-sidebar/settings-dialog/settings.servic
 import { Board3dAccessService } from '../shared/services/board3d-access.service';
 import { BattlePassService } from '../battle-pass/battle-pass.service';
 import { XpGainData } from '../battle-pass/battle-pass.model';
+import { selfPlayFocusPlayerId } from './self-play-focus-player-id';
 
 @UntilDestroy()
 @Component({
@@ -235,8 +236,13 @@ export class TableComponent implements OnInit, OnDestroy {
     }
 
     const state = gameState.state;
+    const effectiveClientId = state.gameSettings && state.gameSettings.selfPlay === true
+      ? selfPlayFocusPlayerId(state)
+      : clientId;
+    this.clientId = effectiveClientId;
+
     if (state.players.length >= 1) {
-      if (state.players[0].id === clientId) {
+      if (state.players[0].id === effectiveClientId) {
         this.bottomPlayer = state.players[0];
       } else {
         this.topPlayer = state.players[0];
@@ -265,9 +271,9 @@ export class TableComponent implements OnInit, OnDestroy {
       const isPlaying = state.players.some(p => p.id === this.clientId);
       const isReplay = !!this.gameState.replay;
       const isObserver = isReplay || !isPlaying;
-      const waitingForOthers = prompts.some(p => p.playerId !== clientId);
-      const waitingForMe = prompts.some(p => p.playerId === clientId);
-      const notMyTurn = state.players[state.activePlayer].id !== clientId
+      const waitingForOthers = prompts.some(p => p.playerId !== this.clientId);
+      const waitingForMe = prompts.some(p => p.playerId === this.clientId);
+      const notMyTurn = state.players[state.activePlayer].id !== this.clientId
         && state.phase === GamePhase.PLAYER_TURN;
       this.waiting = (notMyTurn || waitingForOthers) && !waitingForMe && !isObserver;
     }
@@ -280,7 +286,7 @@ export class TableComponent implements OnInit, OnDestroy {
 
     // Check if the game is in the FINISHED phase and update the game over state
     if (state.phase === GamePhase.FINISHED && !gameState.gameOver) {
-      this.gameOverPrompt = new GameOverPrompt(clientId, state.winner);
+      this.gameOverPrompt = new GameOverPrompt(this.clientId, state.winner);
       if (!this.showGameOver) {
         this.showMatchResultsSplash = true;
         this.showGameOver = false;

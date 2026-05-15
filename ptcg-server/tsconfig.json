@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+"skipLibCheck": true,
     "target": "es2017",
     "module": "commonjs",
     "lib": [
@@ -24,6 +25,10 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true
   },
+"exclude": [
+"node_modules",
+"**/*.spec.ts"
+],
   "include": [
     "src/**/*.ts"
   ]

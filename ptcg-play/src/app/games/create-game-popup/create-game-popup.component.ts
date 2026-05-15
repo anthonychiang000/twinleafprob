@@ -12,10 +12,12 @@ import { FormatValidator } from '../../util/formats-validator';
 export interface CreateGamePopupData {
   decks: SelectPopupOption<DeckListEntry>[];
   invitedUserId?: number;
+  selfPlay?: boolean;
 }
 
 export interface CreateGamePopupResult {
   deckId: number;
+  secondDeckId?: number;
   gameSettings: GameSettings;
 }
 
@@ -28,9 +30,11 @@ export class CreateGamePopupComponent implements OnInit {
 
   decks: SelectPopupOption<DeckListEntry>[];
   public deckId: number;
+  public secondDeckId: number;
   public settings = new GameSettings();
   public isAdmin = false;
   public invitedUserId?: number;
+  public isSelfPlay = false;
   public isInvitingBot = false;
   public botFormat?: Format;
   public formatLocked = false;
@@ -74,7 +78,9 @@ export class CreateGamePopupComponent implements OnInit {
   ) {
     this.decks = data.decks;
     this.invitedUserId = data.invitedUserId;
+    this.isSelfPlay = data.selfPlay === true;
     this.settings.format = Format.STANDARD;
+    this.settings.selfPlay = this.isSelfPlay;
   }
 
   ngOnInit() {
@@ -114,46 +120,24 @@ export class CreateGamePopupComponent implements OnInit {
   }
 
   hasValidDeck(): boolean {
-    const selectedDeck = this.decks.find(d => d.value.id === this.deckId);
-    if (!selectedDeck) {
+    if (!this.isDeckValid(this.deckId)) {
       return false;
     }
-    // Check both format array and deck size
-    if (!selectedDeck.value.format.includes(this.settings.format)) {
-      return false;
-    }
-    // Use format-specific validation for deck size (60 cards required)
-    return FormatValidator.isDeckValidForFormat(selectedDeck.value, this.settings.format);
+    return !this.isSelfPlay || this.isDeckValid(this.secondDeckId);
   }
 
 
   public confirm() {
     // Check if the selected deck is valid for the chosen format
-    const selectedDeck = this.decks.find(d => d.value.id === this.deckId);
-    if (!selectedDeck) {
+    if (!this.hasValidDeck()) {
       // Show an error message or alert
       return;
     }
-    // Check both format array and deck size
-    // if (this.settings.format === Format.PRE_RELEASE) {
-    //   if (!FormatValidator.isDeckValidForFormat(selectedDeck.value, this.settings.format)) {
-    //     // Show an error message or alert
-    //     return;
-    //   }
-    // } else {
-    if (!selectedDeck.value.format.includes(this.settings.format)) {
-      // Show an error message or alert
-      return;
-    }
-    // Use format-specific validation for deck size (60 cards required)
-    if (!FormatValidator.isDeckValidForFormat(selectedDeck.value, this.settings.format)) {
-      // Show an error message or alert
-      return;
-    }
-    // }
 
+    this.settings.selfPlay = this.isSelfPlay;
     this.dialogRef.close({
       deckId: this.deckId,
+      secondDeckId: this.isSelfPlay ? this.secondDeckId : undefined,
       gameSettings: this.settings
     });
   }
@@ -185,13 +169,32 @@ export class CreateGamePopupComponent implements OnInit {
         // Fall back to first available deck
         this.deckId = this.formatValidDecks[0].value;
       }
+      if (!this.secondDeckId || !this.formatValidDecks.some(deck => deck.value === this.secondDeckId)) {
+        this.secondDeckId = this.deckId;
+      }
     } else {
       this.deckId = null;
+      this.secondDeckId = null;
     }
   }
 
   public selectDeck(deckId: number) {
     this.deckId = deckId;
+  }
+
+  public selectSecondDeck(deckId: number) {
+    this.secondDeckId = deckId;
+  }
+
+  private isDeckValid(deckId: number): boolean {
+    const selectedDeck = this.decks.find(d => d.value.id === deckId);
+    if (!selectedDeck) {
+      return false;
+    }
+    if (!selectedDeck.value.format.includes(this.settings.format)) {
+      return false;
+    }
+    return FormatValidator.isDeckValidForFormat(selectedDeck.value, this.settings.format);
   }
 
   public getDeckArchetype(deckId: number): Archetype | Archetype[] {

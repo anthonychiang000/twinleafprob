@@ -2,7 +2,8 @@
 <div class="create-game-header">
   <div class="header-content">
     <div class="title-section">
-      <h2 class="create-game-title" translate>GAMES_CREATE_GAME_TITLE</h2>
+      <h2 class="create-game-title" *ngIf="!isSelfPlay" translate>GAMES_CREATE_GAME_TITLE</h2>
+      <h2 class="create-game-title" *ngIf="isSelfPlay" translate>REACT_SELF_PLAY_TITLE</h2>
     </div>
   </div>
 </div>
@@ -40,7 +41,9 @@
     <!-- Deck Selection -->
     <div class="form-section">
       <div class="section-header">
-        <h3 class="section-title">Your Deck</h3>
+        <h3 class="section-title">
+          {{ (isSelfPlay ? 'REACT_SELF_PLAY_DECK_SIDE_A' : 'GAMES_YOUR_DECK') | translate }}
+        </h3>
         <div class="section-description">Select a deck for this format</div>
       </div>
 
@@ -48,6 +51,38 @@
         <div class="deck-grid">
           <div class="deck-card" *ngFor="let deck of formatValidDecks; let i = index"
             [class.selected]="deckId === deck.value" (click)="selectDeck(deck.value)">
+            <div class="deck-card-content">
+              <div class="deck-artwork">
+                <ptcg-archetype [class]="getDeckArchetype(deck.value)"
+                  style="transform: scale(2); display: flex; image-rendering: pixelated;"></ptcg-archetype>
+              </div>
+              <div class="deck-info">
+                <div class="deck-name">{{ deck.viewValue }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="no-decks-message" *ngIf="!formatValidDecks || formatValidDecks.length === 0">
+        <div class="no-decks-content">
+          <mat-icon>deck</mat-icon>
+          <p>No valid decks available for this format</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Second Deck Selection for Self Play -->
+    <div class="form-section" *ngIf="isSelfPlay">
+      <div class="section-header">
+        <h3 class="section-title">{{ 'REACT_SELF_PLAY_DECK_SIDE_B' | translate }}</h3>
+        <div class="section-description">Select a deck for player 2</div>
+      </div>
+
+      <div class="deck-selection" *ngIf="formatValidDecks && formatValidDecks.length > 0">
+        <div class="deck-grid">
+          <div class="deck-card" *ngFor="let deck of formatValidDecks; let i = index"
+            [class.selected]="secondDeckId === deck.value" (click)="selectSecondDeck(deck.value)">
             <div class="deck-card-content">
               <div class="deck-artwork">
                 <ptcg-archetype [class]="getDeckArchetype(deck.value)"
@@ -138,6 +173,6 @@
     {{ 'BUTTON_CANCEL' | translate }}
   </button>
   <button mat-raised-button class="action-button confirm-button" (click)="confirm()" [disabled]="!hasValidDeck()">
-    {{ 'BUTTON_OK' | translate }}
+    {{ (isSelfPlay ? 'BUTTON_SELF_PLAY_START' : 'BUTTON_OK') | translate }}
   </button>
 </div>

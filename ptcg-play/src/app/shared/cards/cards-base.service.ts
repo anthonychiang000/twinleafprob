@@ -412,10 +412,16 @@ export class CardsBaseService implements OnDestroy {
     if (!scansUrl) {
       return '';
     }
-    return scansUrl
+    const resolvedUrl = scansUrl
       .replace('{cardImage}', card.cardImage || '')
       .replace('{setNumber}', card.setNumber || '')
       .replace('{name}', card.fullName || '');
+
+    if (this.isDefaultCardbackUrl(resolvedUrl)) {
+      return this.getLimitlessCardImageUrl(card);
+    }
+
+    return resolvedUrl;
   }
 
   /**
@@ -618,6 +624,16 @@ export class CardsBaseService implements OnDestroy {
       return artwork.imageUrl;
     }
     return this.getScanUrl(card);
+  }
+
+  private isDefaultCardbackUrl(url: string): boolean {
+    const normalized = (url || '').trim().replace(/^\/+/, '');
+    return normalized === 'assets/cardback.png';
+  }
+
+  private getLimitlessCardImageUrl(card: Card): string {
+    const apiUrl = this.apiService.getApiUrl();
+    return `${apiUrl}/v1/images/card?set=${encodeURIComponent(card.set)}&number=${encodeURIComponent(card.setNumber)}`;
   }
 
   public setFavoriteCard(cardName: string, fullName: string): void {

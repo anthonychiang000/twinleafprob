@@ -1,7 +1,7 @@
 import { Component, OnInit, ViewChild, OnDestroy } from '@angular/core';
-import { GameInfo } from 'ptcg-server';
+import { GameInfo, Format, GameState } from 'ptcg-server';
 import { MatLegacyDialog as MatDialog } from '@angular/material/legacy-dialog';
-import { Observable, EMPTY, from } from 'rxjs';
+import { Observable, EMPTY, from, forkJoin } from 'rxjs';
 import { TranslateService } from '@ngx-translate/core';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { finalize, switchMap, map } from 'rxjs/operators';
@@ -19,7 +19,6 @@ import { MatchmakingLobbyComponent } from './matchmaking-lobby/matchmaking-lobby
 import { ProfileService } from '../api/services/profile.service';
 import { GameService } from '../api/services/game.service';
 import { FriendsService } from '../api/services/friends.service';
-import { Format } from 'ptcg-server';
 import { ReconnectionDialogComponent } from '../shared/components/reconnection-dialog/reconnection-dialog.component';
 import { ToolbarService } from '../shared/services/toolbar.service';
 
@@ -76,11 +75,15 @@ export class GamesComponent implements OnInit, OnDestroy {
     this.sidebarOpen = false;
   }
 
-  private showCreateGamePopup(decks: SelectPopupOption<DeckListEntry>[], invitedUserId?: number): Promise<CreateGamePopupResult> {
+  private showCreateGamePopup(
+    decks: SelectPopupOption<DeckListEntry>[],
+    invitedUserId?: number,
+    selfPlay: boolean = false
+  ): Promise<CreateGamePopupResult> {
     const dialog = this.dialog.open(CreateGamePopupComponent, {
       width: '75vw',
       maxWidth: 'none',
-      data: { decks, invitedUserId }
+      data: { decks, invitedUserId, selfPlay }
     });
     return dialog.afterClosed().toPromise();
   }
@@ -131,6 +134,73 @@ export class GamesComponent implements OnInit, OnDestroy {
         next: () => { },
         error: (error: ApiError) => {
           this.alertService.toast(this.translate.instant('ERROR_UNKNOWN'));
+        }
+      });
+  }
+
+  public createSelfPlayGame() {
+    this.loading = true;
+    this.deckService.getList({ summary: true })
+      .pipe(
+        finalize(() => { this.loading = false; }),
+        untilDestroyed(this),
+        switchMap(decks => {
+          const options = decks.decks
+            .map(deckEntry => ({ value: deckEntry, viewValue: deckEntry.name }));
+
+          if (options.length === 0) {
+            this.alertService.alert(
+              this.translate.instant('GAMES_NEED_DECK'),
+              this.translate.instant('GAMES_NEED_DECK_TITLE')
+            );
+            return EMPTY;
+          }
+
+          return from(this.showCreateGamePopup(options, undefined, true));
+        }),
+        switchMap(result => {
+          if (result === undefined || result.secondDeckId === undefined) {
+            return EMPTY;
+          }
+          this.loading = true;
+          this.closeSidebar();
+          return forkJoin([
+            this.deckService.getDeck(result.deckId),
+            this.deckService.getDeck(result.secondDeckId)
+          ]).pipe(map(([firstDeck, secondDeck]) => ({
+            deck: firstDeck.deck.cards,
+            secondDeck: secondDeck.deck.cards,
+            gameSettings: result.gameSettings,
+            deckId: result.deckId,
+            secondDeckId: result.secondDeckId,
+            sleeveImagePath: firstDeck.deck.sleeveImagePath,
+            secondSleeveImagePath: secondDeck.deck.sleeveImagePath
+          })));
+        }),
+        switchMap(data => {
+          return this.mainSevice.createSelfPlayGame(
+            data.deck,
+            data.secondDeck,
+            data.gameSettings,
+            data.deckId,
+            data.secondDeckId,
+            data.sleeveImagePath,
+            data.secondSleeveImagePath
+          );
+        }),
+        finalize(() => { this.loading = false; })
+      )
+      .subscribe({
+        next: (gameState: GameState) => {
+          const localGameState = this.gameService.appendGameState(gameState)
+            || this.sessionService.session.gameStates.find(g => g.gameId === gameState.gameId && g.deleted === false);
+          this.alertService.toast(this.translate.instant('REACT_SELF_PLAY_SNACKBAR'));
+          if (localGameState) {
+            this.router.navigate(['/table', localGameState.localId]);
+          }
+        },
+        error: (error: ApiError) => {
+          this.alertService.toast(this.translate.instant('REACT_ERROR_CREATE_GAME'));
         }
       });
   }

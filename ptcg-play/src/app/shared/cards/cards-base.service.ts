@@ -406,11 +406,13 @@ export class CardsBaseService implements OnDestroy {
       return customUrl;
     }
 
-    // Fall back to default URL template
+    // Fall back to default URL template when a connected server provides one.
+    // Static/local builds do not have an image proxy, so unresolved cardbacks
+    // are loaded directly from Limitless and cached by the browser.
     const config = this.sessionService.session.config;
     const scansUrl = config && config.scansUrl || '';
     if (!scansUrl) {
-      return '';
+      return this.getLimitlessCardImageUrl(card);
     }
     const resolvedUrl = scansUrl
       .replace('{cardImage}', card.cardImage || '')
@@ -632,8 +634,19 @@ export class CardsBaseService implements OnDestroy {
   }
 
   private getLimitlessCardImageUrl(card: Card): string {
-    const apiUrl = this.apiService.getApiUrl();
-    return `${apiUrl}/v1/images/card?set=${encodeURIComponent(card.set)}&number=${encodeURIComponent(card.setNumber)}`;
+    const set = encodeURIComponent((card.set || '').trim().toUpperCase());
+    const setNumber = this.normalizeLimitlessSetNumber(card.setNumber);
+    return `https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/tpci/${set}/${set}_${setNumber}_R_EN.png`;
+  }
+
+  private normalizeLimitlessSetNumber(setNumber: string): string {
+    const value = (setNumber || '').trim();
+    const match = value.match(/^(\d+)([a-zA-Z]*)$/);
+    if (!match) {
+      return encodeURIComponent(value);
+    }
+
+    return `${match[1].padStart(3, '0')}${match[2].toUpperCase()}`;
   }
 
   public setFavoriteCard(cardName: string, fullName: string): void {

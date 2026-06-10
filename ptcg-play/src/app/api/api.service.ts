@@ -16,11 +16,13 @@ export class ApiService {
     private http: HttpClient,
     private sessionService: SessionService
   ) {
-    this.apiUrl = environment.apiUrl;
+    this.apiUrl = (environment as any).apiHttpUrl ?? environment.apiUrl;
   }
 
   public setApiUrl(apiUrl: string) {
-    this.apiUrl = apiUrl;
+    this.apiUrl = Object.prototype.hasOwnProperty.call(environment, 'apiHttpUrl')
+      ? ((environment as any).apiHttpUrl || '')
+      : apiUrl;
   }
 
   public getApiUrl(): string {

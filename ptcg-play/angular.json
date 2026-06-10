@@ -24,8 +24,14 @@
             "tsConfig": "src/tsconfig.app.json",
             "assets": [
               "src/favicon.ico",
-              "src/assets",
-              "src/assets/card-images"
+              {
+                "glob": "**/*",
+                "input": "src/assets",
+                "output": "assets",
+                "ignore": [
+                  "card-images/**"
+                ]
+              }
             ],
             "styles": [
               "src/theme/app.scss"
@@ -49,7 +55,7 @@
               "optimization": {
                 "scripts": true,
                 "fonts": {
-                  "inline": true
+                  "inline": false
                 },
                 "styles": {
                   "minify": true,

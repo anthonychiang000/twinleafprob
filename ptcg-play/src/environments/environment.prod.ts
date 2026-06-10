@@ -1,5 +1,6 @@
 export const environment = {
   apiUrl: 'https://play-server.twinleaf.gg',
+  apiHttpUrl: '',
   // Increase API/socket observable timeouts to be more tolerant
   timeout: 60 * 1000,
   production: true,

@@ -120,7 +120,8 @@ export class LoginComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     const apiUrl = this.loginRememberService.apiUrl;
-    if (apiUrl && this.apiService.getApiUrl() !== apiUrl) {
+    const usesHttpProxy = Object.prototype.hasOwnProperty.call(environment, 'apiHttpUrl');
+    if (apiUrl && !usesHttpProxy && this.apiService.getApiUrl() !== apiUrl) {
       this.apiService.setApiUrl(apiUrl);
       this.socketService.setServerUrl(apiUrl);
     }

@@ -1,0 +1,22 @@
+{
+  "buildCommand": "npm run build:prod",
+  "outputDirectory": "dist/ptcg-play",
+  "rewrites": [
+    {
+      "source": "/v1/(.*)",
+      "destination": "https://play-server.twinleaf.gg/v1/$1"
+    },
+    {
+      "source": "/avatars/(.*)",
+      "destination": "https://play-server.twinleaf.gg/avatars/$1"
+    },
+    {
+      "source": "/sleeves/(.*)",
+      "destination": "https://play-server.twinleaf.gg/sleeves/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
